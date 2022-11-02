@@ -80,24 +80,26 @@ static int uk_ethdev_start(struct rte_eth_dev *eth_dev __rte_unused)
 
 	return 0;
 }
-
+// 停止设备
 static void uk_ethdev_stop(struct rte_eth_dev *eth_dev __rte_unused)
 {
 	void *pkt = NULL;
+	// 通过 eth_dev 获取 uk_netdev
 	struct uk_ethdev_private *prv = eth_dev->data->dev_private;
-
+	// 更新字段
 	eth_dev->data->dev_link.link_status = ETH_LINK_DOWN;
 	eth_dev->data->dev_started = 0;
+	// 释放所有队列中的 packet
 	while (rte_ring_dequeue(prv->rx_queue, &pkt) != -ENOENT)
 		rte_pktmbuf_free(pkt);
 
 	while (rte_ring_dequeue(prv->tx_queue, &pkt) != -ENOENT)
 		rte_pktmbuf_free(pkt);
 }
-
+// 关闭设备
 static void uk_ethdev_close(struct rte_eth_dev *dev __rte_unused)
 {}
-
+// 配置设备
 static int uk_ethdev_configure(struct rte_eth_dev *dev)
 {
 	int rc = 0;
@@ -107,18 +109,18 @@ static int uk_ethdev_configure(struct rte_eth_dev *dev)
 	struct uk_netdev_queue_info qi = {0};
 	struct uk_hwaddr *hw_addr;
 	uint16_t max_rx_desc = 0, max_tx_desc = 0;
-
+	// 获取 uk_netdev
 	UK_ASSERT(dev);
 	priv = dev->data->dev_private;
 	ndev =  priv->netdev;
 
 	printf("%s: Configuring ethdev %p\n", __func__, dev);
-
+	// 调用函数进行配置
 	nconf.nb_rx_queues = dev->data->nb_rx_queues;
 	nconf.nb_tx_queues = dev->data->nb_tx_queues;
 
 	rc = uk_netdev_configure(ndev, &nconf);
-
+	// 获取队列信息
 	uk_netdev_rxq_info_get(ndev, 0, &qi);
 	priv->max_rx_desc = qi.nb_max;
 	uk_netdev_txq_info_get(ndev, 0, &qi);
@@ -132,7 +134,7 @@ static int uk_ethdev_configure(struct rte_eth_dev *dev)
 
 	return rc;
 }
-
+// 获取 uk_netdev 设备信息并配置进 rte_eth_dev
 static void uk_ethdev_info_get(struct rte_eth_dev *dev,
 			       struct rte_eth_dev_info *dev_info)
 {
@@ -144,9 +146,9 @@ static void uk_ethdev_info_get(struct rte_eth_dev *dev,
 
 	priv_dev =  dev->data->dev_private;
 	nd = priv_dev->netdev;
-
+	// 获取信息
 	uk_netdev_info_get(nd, &nd_info);
-
+	// 配置信息
 	uk_pr_info("rx_queue: %d, txqueue: %d\n", nd_info.max_rx_queues,
 			nd_info.max_tx_queues);
 	dev_info->driver_name = uk_ethdev_driver_name;
@@ -165,7 +167,7 @@ static void uk_ethdev_info_get(struct rte_eth_dev *dev,
 	priv_dev->nb_encap_rx = nd_info.nb_encap_rx;
 	priv_dev->nb_encap_tx = nd_info.nb_encap_tx;
 }
-
+// 为 rx 分配数据包
 static uint16_t uk_pmd_alloc_rxpkts(void *argp, struct uk_netbuf *pkts[], uint16_t count)
 {
 	int rc;
@@ -174,25 +176,29 @@ static uint16_t uk_pmd_alloc_rxpkts(void *argp, struct uk_netbuf *pkts[], uint16
 	struct rte_mbuf *mpkts[CONFIG_LIBUKNETDEV_MAX_PKT_BURST];
 
 	UK_ASSERT(argp && pkts);
-
+	// 内存池以及需要的数据包数量
 	mp = (struct rte_mempool *) argp;
 	pkt_cnt = count;
 	
 	do {
+		// 取数据包填充至 mpkts
 		rc = rte_mempool_get_bulk(mp, mpkts, pkt_cnt);
 		if (rc == 0)
+			// 成功取得
 			goto exit;
 
 #if 0
 		printf("pool: %p mempool_size: %d\n", mp,
 			rte_mempool_avail_count(mp));
 #endif
+		// 折半重新进行尝试
 		pkt_cnt = pkt_cnt >> 1;
 	} while (pkt_cnt > 0);
 	return 0;
 exit:
 	//printf("preparing packet: %d\n", pkt_cnt);
 	for (i = 0; i < pkt_cnt; i++) {
+		// 对 mbuf 进行初始化并在 uk_netbuf 中存储相对应的数据
 		struct rte_mbuf *mbuf = mpkts[i];
 		rte_pktmbuf_reset_headroom(mbuf);
 		pkts[i] = (struct uk_netbuf *)mbuf->userdata;
@@ -207,7 +213,7 @@ exit:
 	}
 	return pkt_cnt;
 }
-
+// 设置 rx 队列
 static int uk_ethdev_rx_queue_setup(struct rte_eth_dev *dev,
 				    uint16_t rx_queue_id,
 				    uint16_t nb_rx_desc __rte_unused,
@@ -350,7 +356,7 @@ static int uk_ethdev_mac_address_set(__rte_unused struct rte_eth_dev *dev,
 {
 	return 0;
 }
-
+// 注册函数
 static const struct eth_dev_ops uk_ethdev_default_dev_ops = {
 	.dev_configure = uk_ethdev_configure,
 	.dev_start = uk_ethdev_start,
