@@ -46,27 +46,35 @@ struct rte_eth_rxtx_callback {
  * process, while the actual configuration data for the device is shared.
  */
 struct rte_eth_dev {
+	/** 指向 PMD 收发函数 */
 	eth_rx_burst_t rx_pkt_burst; /**< Pointer to PMD receive function */
 	eth_tx_burst_t tx_pkt_burst; /**< Pointer to PMD transmit function */
 
 	/** Pointer to PMD transmit prepare function */
+	/** 指向 tx 准备函数 */
 	eth_tx_prep_t tx_pkt_prepare;
 	/** Get the number of used Rx descriptors */
+	/* 指向获取 rx 队列个数函数 */
 	eth_rx_queue_count_t rx_queue_count;
 	/** Check the status of a Rx descriptor */
+	/* 检测 rx/tx 描述符状态 */
 	eth_rx_descriptor_status_t rx_descriptor_status;
 	/** Check the status of a Tx descriptor */
 	eth_tx_descriptor_status_t tx_descriptor_status;
 
 	/**
 	 * Device data that is shared between primary and secondary processes
+	 * 在主进程和次进程间共享的数据
 	 */
 	struct rte_eth_dev_data *data;
+	// 进程私有数据
 	void *process_private; /**< Pointer to per-process device data */
+	// PMD 提供的函数集合
 	const struct eth_dev_ops *dev_ops; /**< Functions exported by PMD */
 	struct rte_device *device; /**< Backing device */
+	// 中断处理
 	struct rte_intr_handle *intr_handle; /**< Device interrupt handle */
-
+	// NIC 中断调用的应用回调函数
 	/** User application callbacks for NIC interrupts */
 	struct rte_eth_dev_cb_list link_intr_cbs;
 	/**
@@ -79,8 +87,9 @@ struct rte_eth_dev {
 	 * received packets before passing them to the driver for transmission
 	 */
 	struct rte_eth_rxtx_callback *pre_tx_burst_cbs[RTE_MAX_QUEUES_PER_PORT];
-
+	// 端口状态
 	enum rte_eth_dev_state state; /**< Flag indicating the port state */
+	// 安全相关
 	void *security_ctx; /**< Context for security ops */
 } __rte_cache_aligned;
 
@@ -92,39 +101,48 @@ struct rte_eth_dev_owner;
  * The data part, with no function pointers, associated with each Ethernet
  * device. This structure is safe to place in shared memory to be common
  * among different processes in a multi-process configuration.
+ * 数据段，多进程配置下可放置于共享内存中供不同进程使用
  */
 struct rte_eth_dev_data {
+	// 标识名
 	char name[RTE_ETH_NAME_MAX_LEN]; /**< Unique identifier name */
-
+	// 指向 rx/tx 队列数组
 	void **rx_queues; /**< Array of pointers to Rx queues */
 	void **tx_queues; /**< Array of pointers to Tx queues */
+	// rx/tx 队列的数量
 	uint16_t nb_rx_queues; /**< Number of Rx queues */
 	uint16_t nb_tx_queues; /**< Number of Tx queues */
-
+	// TODO
 	struct rte_eth_dev_sriov sriov;    /**< SRIOV data */
-
+	// PMD 所需数据
 	/** PMD-specific private data. @see rte_eth_dev_release_port() */
 	void *dev_private;
-
+	// 数据链路层的信息与状态
 	struct rte_eth_link dev_link;   /**< Link-level information & status */
+	// 用于配置的结构体
 	struct rte_eth_conf dev_conf;   /**< Configuration applied to device */
+	// 最大传输单元
 	uint16_t mtu;                   /**< Maximum Transmission Unit */
 
 	/** Common Rx buffer size handled by all queues */
+	// rx buffer 最小值
 	uint32_t min_rx_buf_size;
-
+	// 分配失败计数
 	uint64_t rx_mbuf_alloc_failed; /**< Rx ring mbuf allocation failures */
 
 	/** Device Ethernet link address. @see rte_eth_dev_release_port() */
+	// 以太网连接地址
 	struct rte_ether_addr *mac_addrs;
 	/** Bitmap associating MAC addresses to pools */
+	// MAC 地址位图
 	uint64_t mac_pool_sel[RTE_ETH_NUM_RECEIVE_MAC_ADDR];
 	/**
 	 * Device Ethernet MAC addresses of hash filtering.
 	 * @see rte_eth_dev_release_port()
+	 * 哈希
 	 */
 	struct rte_ether_addr *hash_mac_addrs;
-
+	// 端口号
 	uint16_t port_id;           /**< Device [external] port identifier */
 
 	__extension__
@@ -145,16 +163,19 @@ struct rte_eth_dev_data {
 		dev_configured : 1;
 
 	/** Queues state: HAIRPIN(2) / STARTED(1) / STOPPED(0) */
+	// rx/tx 队列zhuangtai 2：端口回环 1：启动 0：停止
 	uint8_t rx_queue_state[RTE_MAX_QUEUES_PER_PORT];
 	/** Queues state: HAIRPIN(2) / STARTED(1) / STOPPED(0) */
 	uint8_t tx_queue_state[RTE_MAX_QUEUES_PER_PORT];
-
+	// 设备能力
 	uint32_t dev_flags;             /**< Capabilities */
+	// TODO
 	int numa_node;                  /**< NUMA node connection */
 
 	/** VLAN filter configuration */
+	// VLAN 配置
 	struct rte_vlan_filter_conf vlan_filter_conf;
-
+	// 端口拥有者
 	struct rte_eth_dev_owner owner; /**< The port owner */
 
 	/**
@@ -998,6 +1019,7 @@ typedef int (*eth_rx_metadata_negotiate_t)(struct rte_eth_dev *dev,
  * @internal A structure containing the functions exported by an Ethernet driver.
  */
 struct eth_dev_ops {
+	// 设备操作函数集合
 	eth_dev_configure_t        dev_configure; /**< Configure device */
 	eth_dev_start_t            dev_start;     /**< Start device */
 	eth_dev_stop_t             dev_stop;      /**< Stop device */

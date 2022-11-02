@@ -18,21 +18,30 @@
 #include <uk/init.h>
 #include <uk/print.h>
 #include <uk/alloc.h>
-
+// poll mode driver
 #define MAX_PKT_BURST CONFIG_LIBUKNETDEV_MAX_PKT_BURST
 #define DRIVER_NAME "uk_pmd"
 
 static const char *uk_ethdev_driver_name = DRIVER_NAME;
 
 struct uk_ethdev_private {
+	// dpdk 侧的 rte_device
 	struct rte_device dev; /*< allocate a rte_device */
+	// unikraft 侧的 uk_netdev
 	struct uk_netdev *netdev; /*< Reference to the uk_netdev */
+	// ops 集合
 	struct eth_dev_ops dev_ops; /*< Device operations */
+	// 设备状态
 	struct rte_eth_stats eth_stats; /*< Device stats */
+	// 列表
 	struct uk_list_head next;
+	// rx ring
 	struct rte_ring *rx_queue;
+	// tx ring
 	struct rte_ring *tx_queue;
+	// 失败次数
 	int tx_burst_fail_count;
+	// 容量
 	int nb_encap_rx;
 	int nb_encap_tx;
 	uint16_t max_rx_desc;
@@ -40,22 +49,24 @@ struct uk_ethdev_private {
 };
 
 struct uk_ethdev_queue {
-	int port_id;
-	int queue_id;
-	struct rte_eth_dev *dev;
+	// 用于轮询的设备队列
+	int port_id; // 端口 id
+	int queue_id; // 队列 id
+	struct rte_eth_dev *dev; // 设备链表头
 };
 
 static struct uk_ethdev_private *dev_list;
 static struct rte_driver uk_netdev_driver = {.name = DRIVER_NAME};
-
+// 析构函数
 extern int uk_netbuf_mbuf_dtor(struct uk_netbuf *nb);
-
+// 启动设备
 static int uk_ethdev_start(struct rte_eth_dev *eth_dev __rte_unused)
 {
 	struct uk_ethdev_private *prv;
 	int rc;
 
 	UK_ASSERT(eth_dev);
+	// 又是在 private 字段存储对应结构体
 	prv = eth_dev->data->dev_private;
 
 	rc = uk_netdev_start(prv->netdev);
@@ -63,7 +74,7 @@ static int uk_ethdev_start(struct rte_eth_dev *eth_dev __rte_unused)
 		uk_pr_err("Failed to start the netdev: %p\n", prv->netdev);
 		return rc;
 	}
-
+	// 更新在 eth_dev 中的字段
 	eth_dev->data->dev_started = 1;
 	eth_dev->data->dev_link.link_status = ETH_LINK_UP;
 
