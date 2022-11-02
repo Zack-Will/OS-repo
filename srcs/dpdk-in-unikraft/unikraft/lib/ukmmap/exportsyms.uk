@@ -1,0 +1,5 @@
+mmap
+munmap
+mremap
+mlock
+mlockall
