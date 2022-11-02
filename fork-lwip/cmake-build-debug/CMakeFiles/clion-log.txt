@@ -1,0 +1,22 @@
+C:\Users\12784\AppData\Local\JetBrains\Toolbox\apps\CLion\ch-0\222.4345.21\bin\cmake\win\bin\cmake.exe -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=C:/Users/12784/AppData/Local/JetBrains/Toolbox/apps/CLion/ch-0/222.4345.21/bin/ninja/win/ninja.exe -G Ninja -S "C:\Users\12784\OneDrive - stu.xidian.edu.cn\Study\OS\Source Code\fork-lwip" -B "C:\Users\12784\OneDrive - stu.xidian.edu.cn\Study\OS\Source Code\fork-lwip\cmake-build-debug"
+-- The C compiler identification is GNU 4.9.2
+-- The CXX compiler identification is GNU 4.9.2
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: E:/Dev-Cpp/MinGW64/bin/gcc.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: E:/Dev-Cpp/MinGW64/bin/c++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Could NOT find Doxygen (missing: DOXYGEN_EXECUTABLE) 
+Doxygen needs to be installed to generate the doxygen documentation
+-- Configuring done
+CMake Error at CMakeLists.txt:20 (add_dependencies):
+  The dependency target "lwipdocs" of target "dist" does not exist.
+
+
+-- Generating done
+CMake Generate step failed.  Build files cannot be regenerated correctly.
