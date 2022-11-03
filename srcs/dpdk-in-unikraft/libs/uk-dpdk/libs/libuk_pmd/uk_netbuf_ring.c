@@ -15,7 +15,7 @@
 static uint64_t enqueue_cnt = 0, dequeue_cnt = 0;
 static uint64_t enqueue_fail_cnt = 0, dequeue_fail_cnt = 0, free_desc_cnt;
 static struct rte_ring *uk_ring;
-
+// 将 object 加入 ring 中
 static int
 uk_ring_enqueue(struct rte_mempool *mp, void * const *obj_table,
 		unsigned n)
@@ -29,7 +29,7 @@ uk_ring_enqueue(struct rte_mempool *mp, void * const *obj_table,
 
 	return 0;
 }
-
+// 取出
 static int
 uk_ring_dequeue(struct rte_mempool *mp, void **obj_table, unsigned n)
 {
@@ -43,13 +43,13 @@ uk_ring_dequeue(struct rte_mempool *mp, void **obj_table, unsigned n)
 	}
 	return 0;
 }
-
+// 获取环中入口的个数
 static unsigned
 uk_ring_get_count(const struct rte_mempool *mp)
 {
 	return rte_ring_count(mp->pool_data);
 }
-
+// mbuf 的析构函数
 int uk_netbuf_mbuf_dtor(struct uk_netbuf *nb)
 {
         struct rte_mbuf *mbuf;
@@ -79,7 +79,7 @@ int uk_netbuf_mbuf_dtor(struct uk_netbuf *nb)
 
 	return 1;
 }
-
+// 内存池的析构函数
 int uk_netbuf_pool_dtor(struct uk_netbuf **nb, int cnt)
 {
         struct rte_mbuf *mbuf[CONFIG_LIBUKNETDEV_MAX_PKT_BURST];
@@ -109,7 +109,7 @@ int uk_netbuf_pool_dtor(struct uk_netbuf **nb, int cnt)
 
 	return 1;
 }
-
+// 向内存池中加入元素
 static void uk_mempool_add_elem(struct rte_mempool *mp, __rte_unused void *opaque,
                  void *obj, rte_iova_t iova)
 {
@@ -120,6 +120,7 @@ static void uk_mempool_add_elem(struct rte_mempool *mp, __rte_unused void *opaqu
         hdr = RTE_PTR_SUB(obj, mp->header_size);
         hdr->mp = mp;
         hdr->iova = iova;
+		// 插入链表尾
         STAILQ_INSERT_TAIL(&mp->elt_list, hdr, next);
         mp->populated_size++;
 
@@ -131,7 +132,7 @@ static void uk_mempool_add_elem(struct rte_mempool *mp, __rte_unused void *opaqu
         tlr->cookie = RTE_MEMPOOL_TRAILER_COOKIE;
 #endif
 }
-
+// 填充内存池？
 int uk_ring_mempool_populate(struct rte_mempool *mp,
 			     unsigned int max_objs,
 			     void *vaddr, rte_iova_t iova, size_t len,
@@ -153,10 +154,11 @@ int uk_ring_mempool_populate(struct rte_mempool *mp,
 	UK_ASSERT(mp);
 	user_mbp_priv = rte_mempool_get_priv(mp);
 	UK_ASSERT(user_mbp_priv);
+	// mbuf 总长度 + uk_netbuf 长度
 	total_elt_sz = mp->header_size + mp->elt_size + mp->trailer_size +
 		sizeof(struct uk_netbuf);
 	private_size = user_mbp_priv->mbuf_priv_size;
-
+	// TODO 图解内存结构
 	for (off = 0, i = 0; off + total_elt_sz <= len && i < max_objs; i++) {
 		pkt_metadata = vaddr +off;
 		off += mp->header_size;
@@ -203,7 +205,7 @@ int uk_ring_mempool_populate(struct rte_mempool *mp,
 
 	return i;
 }
-
+// 为 ring 分配内存
 static int
 uk_ring_alloc(struct rte_mempool *mp)
 {
@@ -241,13 +243,13 @@ uk_ring_alloc(struct rte_mempool *mp)
 
 	return 0;
 }
-
+// 释放内存
 static void
 uk_ring_free(struct rte_mempool *mp)
 {
 	rte_ring_free(mp->pool_data);
 }
-
+// 
 static ssize_t
 uk_ring_calc_mem_size(const struct rte_mempool *mp,
 		      uint32_t obj_num, uint32_t pg_shift,
@@ -292,6 +294,7 @@ uk_ring_calc_mem_size(const struct rte_mempool *mp,
  * single/multi producers and single/multi consumers as dictated by the
  * flags provided to the rte_mempool_create function
  */
+// 注册函数
 static const struct rte_mempool_ops pmd_uk_netbuf = {
 	.name = "ring_uk_netbuf",
 	.alloc = uk_ring_alloc,
@@ -302,5 +305,6 @@ static const struct rte_mempool_ops pmd_uk_netbuf = {
 	.populate = uk_ring_mempool_populate,
 	.calc_mem_size = uk_ring_calc_mem_size,
 };
+// 用于注册的宏
 MEMPOOL_REGISTER_OPS(pmd_uk_netbuf);
 

@@ -36,6 +36,7 @@
  * pktmbuf pool constructor, given as a callback function to
  * rte_mempool_create(), or called directly if using
  * rte_mempool_create_empty()/rte_mempool_populate()
+ * 构建 pktmbuf 池
  */
 void
 rte_pktnetbuf_pool_init(struct rte_mempool *mp, void *opaque_arg)

@@ -96,7 +96,7 @@ static void uk_ethdev_stop(struct rte_eth_dev *eth_dev __rte_unused)
 	while (rte_ring_dequeue(prv->tx_queue, &pkt) != -ENOENT)
 		rte_pktmbuf_free(pkt);
 }
-// 关闭设备
+// 关闭设备（未实现）
 static void uk_ethdev_close(struct rte_eth_dev *dev __rte_unused)
 {}
 // 配置设备
@@ -235,7 +235,7 @@ static int uk_ethdev_rx_queue_setup(struct rte_eth_dev *dev,
 	nconf.callback = priv_dev;
 	nconf.alloc_rxpkts = uk_pmd_alloc_rxpkts;
 	nconf.alloc_rxpkts_argp = mb_pool;
-
+	// 为队列分配空间
 	queue = uk_zalloc(nconf.a, sizeof(*queue));
 	if (!queue) {
 		uk_pr_err("Failed to allocate rx queue\n");
@@ -244,13 +244,14 @@ static int uk_ethdev_rx_queue_setup(struct rte_eth_dev *dev,
 
 	uk_pr_info("%s: Configure the device queue id: %d\n", __func__,
 		   rx_queue_id);
-
+	// 配置 rx 队列
 	rc = uk_netdev_rxq_configure(nd, rx_queue_id, 0, &nconf);
 	if (rc < 0) {
 		uk_pr_err("Failed to configure the rx queue: %d\n",
 			  rx_queue_id);
 		return rc;
 	}
+	// 存储相关信息
 	queue->port_id = dev->data->port_id;
 	queue->queue_id = rx_queue_id;
 	queue->dev = dev;
@@ -258,7 +259,7 @@ static int uk_ethdev_rx_queue_setup(struct rte_eth_dev *dev,
 
 	return 0;
 }
-
+// 配置 tx 队列
 static int uk_ethdev_tx_queue_setup(struct rte_eth_dev *dev,
 				 uint16_t tx_queue_id,
 				 uint16_t nb_tx_desc __rte_unused,
@@ -304,7 +305,7 @@ free_mem:
 	uk_free(nconf.a, queue);
 	return rc;
 }
-
+// 释放队列（未实现）
 static void uk_ethdev_rx_queue_release(void *q __rte_unused)
 {
 }
@@ -312,7 +313,7 @@ static void uk_ethdev_rx_queue_release(void *q __rte_unused)
 static void uk_ethdev_tx_queue_release(void *q __rte_unused)
 {
 }
-
+// 通过设备状态更新连接状态
 static int uk_ethdev_link_update(struct rte_eth_dev *bonded_eth_dev,
 					 int wait_to_complete __rte_unused)
 {
@@ -321,7 +322,7 @@ static int uk_ethdev_link_update(struct rte_eth_dev *bonded_eth_dev,
 
 	return 0;
 }
-
+// 获取 stats
 static int uk_ethdev_stats_get(struct rte_eth_dev *dev,
 			       struct rte_eth_stats *stats)
 {
@@ -332,7 +333,7 @@ static int uk_ethdev_stats_get(struct rte_eth_dev *dev,
 
 	return 0;
 }
-
+// 重置 stats
 static void uk_ethdev_stats_reset(struct rte_eth_dev *dev)
 {
 	struct uk_ethdev_private *dev_private = dev->data->dev_private;
@@ -344,13 +345,13 @@ static void uk_ethdev_stats_reset(struct rte_eth_dev *dev)
 	/* Reset internal statistics */
 	memset(&dev_private->eth_stats, 0, sizeof(dev_private->eth_stats));
 }
-
+// 操作混杂模式（未实现）
 static void uk_ethdev_promiscuous_mode_enable(struct rte_eth_dev *dev __rte_unused)
 {}
 
 static void uk_ethdev_promiscuous_mode_disable(struct rte_eth_dev *dev __rte_unused)
 {}
-
+// 设置 mac 地址
 static int uk_ethdev_mac_address_set(__rte_unused struct rte_eth_dev *dev,
 				     __rte_unused struct rte_ether_addr *addr)
 {
@@ -374,7 +375,7 @@ static const struct eth_dev_ops uk_ethdev_default_dev_ops = {
 	.promiscuous_enable = uk_ethdev_promiscuous_mode_enable,
 	.promiscuous_disable = uk_ethdev_promiscuous_mode_disable
 };
-
+// rx 收包
 static uint16_t uk_ethdev_rx_burst(void *queue,
 				   struct rte_mbuf **bufs,
 				   uint16_t nb_pkts)
@@ -388,11 +389,12 @@ static uint16_t uk_ethdev_rx_burst(void *queue,
 	struct rte_mbuf *mbuf;
 
 	UK_ASSERT(queue && bufs);
-
+	// 获取队列以及 netdev
 	rxq = (struct uk_ethdev_private *) queue;
 	vrtl_eth_dev = &rte_eth_devices[rxq->port_id];
 	dev_private = vrtl_eth_dev->data->dev_private;
 	UK_ASSERT(dev_private);
+	// 限制最大发包数
 	nb_pkts = (nb_pkts > MAX_PKT_BURST)? MAX_PKT_BURST:nb_pkts;
 
 	if (unlikely(!vrtl_eth_dev->data->dev_link.link_status)) {
@@ -400,10 +402,12 @@ static uint16_t uk_ethdev_rx_burst(void *queue,
 	} else {
 		while (rx_count < nb_pkts) {
 			rx_burst_size = nb_pkts - rx_count;
+			// 调用 netdev 中的 rx 函数进行收包
 			rc = uk_netdev_rx_burst(dev_private->netdev,
 					rxq->queue_id, &nb[rx_count],
 					&rx_burst_size);
 			idx = rx_count;
+			// 使用接收到的包填充 mbuf
 			for (i = idx; i < idx + rx_burst_size; i++) {
 				rx_count++;
 				UK_ASSERT(nb[i]);
@@ -428,15 +432,17 @@ static uint16_t uk_ethdev_rx_burst(void *queue,
 		}
 	}
 	/* increments ipackets count */
+	// 增加成功接收包的数量
 	dev_private->eth_stats.ipackets += rx_count;
 
 	/* increments ibytes count */
+	// 增加成功接收字节数
 	for (i = 0; i < rx_count; i++)
 		dev_private->eth_stats.ibytes += rte_pktmbuf_pkt_len(bufs[i]);
 
 	return rx_count;
 }
-
+// tx 发包
 static uint16_t uk_ethdev_tx_burst(void *queue, struct rte_mbuf **bufs,
 				   uint16_t nb_pkts)
 {
@@ -461,7 +467,7 @@ static uint16_t uk_ethdev_tx_burst(void *queue, struct rte_mbuf **bufs,
 	} else {
 		uk_pr_debug("enqueue %d bufs on port: %d\n", nb_pkts,
 			   txq->port_id);
-
+		// 将要发送的包填充至 uk_netbuf 数组中
 		for (i = 0; i < nb_pkts; i++) {
 			nb[i] = (struct uk_netbuf *) (((uintptr_t) bufs[i]) -
 					sizeof(struct uk_netbuf));
@@ -469,7 +475,7 @@ static uint16_t uk_ethdev_tx_burst(void *queue, struct rte_mbuf **bufs,
 			nb[i]->len = bufs[i]->pkt_len;
 			uk_pr_debug("Sending packet: %d netbuf: %p on queue: %d len: %d mbuf_len: %d\n", i, nb[i], txq->queue_id, nb[i]->len, bufs[i]->pkt_len);
 		}
-
+		// 传输数组中的数据包
 		rc = uk_netdev_tx_burst(dev_private->netdev,
 				      txq->queue_id, &nb[0], &count);
 		UK_ASSERT(rc >= 0);
@@ -478,40 +484,42 @@ static uint16_t uk_ethdev_tx_burst(void *queue, struct rte_mbuf **bufs,
 	}
 
 	/* increment opacket count */
+	// 增加成功接收收包的数量
 	dev_private->eth_stats.opackets += count;
 
 	/* increment obytes count */
+	// 增加成功接收的字节
 	for (i = 0; i < count; i++)
 		dev_private->eth_stats.obytes += rte_pktmbuf_pkt_len(bufs[i]);
 
 	return count;
 }
-
+// 设置连接状态
 void uk_ethdev_set_link_status(uint16_t port_id, uint8_t link_status)
 {
 	struct rte_eth_dev *vrtl_eth_dev = &rte_eth_devices[port_id];
 
 	vrtl_eth_dev->data->dev_link.link_status = link_status;
 }
-
+// 模拟中断？
 void uk_ethdev_simulate_link_status_interrupt(uint16_t port_id,
 					      uint8_t link_status)
 {
 	struct rte_eth_dev *vrtl_eth_dev = &rte_eth_devices[port_id];
 
 	vrtl_eth_dev->data->dev_link.link_status = link_status;
-
+	// TODO 没找到在哪
 	_rte_eth_dev_callback_process(vrtl_eth_dev, RTE_ETH_EVENT_INTR_LSC,
 				      NULL);
 }
-
+// 向 rx 队列中加入 mbuf
 int uk_ethdev_add_mbufs_to_rx_queue(uint16_t port_id,
 				struct rte_mbuf **pkt_burst, int burst_length)
 {
 	struct rte_eth_dev *vrtl_eth_dev = &rte_eth_devices[port_id];
 	struct uk_ethdev_private *dev_private =
 			vrtl_eth_dev->data->dev_private;
-
+	// 将包加入 rte_ring
 	return rte_ring_enqueue_burst(dev_private->rx_queue, (void **)pkt_burst,
 			burst_length, NULL);
 }
@@ -522,7 +530,7 @@ int uk_ethdev_get_mbufs_from_tx_queue(uint16_t port_id,
 {
 	struct uk_ethdev_private *dev_private;
 	struct rte_eth_dev *vrtl_eth_dev = &rte_eth_devices[port_id];
-
+	// 从 rte_ring 中取出包
 	dev_private = vrtl_eth_dev->data->dev_private;
 	return rte_ring_dequeue_burst(dev_private->tx_queue, (void **)pkt_burst,
 		burst_length, NULL);
@@ -531,6 +539,7 @@ int uk_ethdev_get_mbufs_from_tx_queue(uint16_t port_id,
 /**
  * Register a ethdev with DPDK
  */
+// 使用 DPDK 注册一个设备
 static int uk_ethdev_create(struct uk_netdev *dev, const char *name,
 			    uint8_t socket_id,
 			    uint8_t isr_support)
@@ -561,7 +570,7 @@ static int uk_ethdev_create(struct uk_netdev *dev, const char *name,
 		goto err;
 	id_table->device_id = 0xBEEF;
 #endif /* CONFIG_PCI_BUS */
-
+	// 在特定的 heap 分配内存
 	dev_private = rte_zmalloc_socket(name, sizeof(*dev_private), 0, socket_id);
 	if (dev_private == NULL)
 		goto err;
@@ -600,6 +609,7 @@ static int uk_ethdev_create(struct uk_netdev *dev, const char *name,
 
 
 #endif /* CONFIG_PCI_BUS */
+	// 配置 eth_dev
 	eth_dev->device = &dev_private->dev;
 	eth_dev->device->driver = &uk_netdev_driver;
 
@@ -634,7 +644,7 @@ static int uk_ethdev_create(struct uk_netdev *dev, const char *name,
 	pci_dev->device.driver = &pci_drv->driver;
 	eth_dev->device = &pci_dev->device;
 #endif /* CONFIG_PCI_BUS */
-
+	// 注册收发函数
 	eth_dev->rx_pkt_burst = uk_ethdev_rx_burst;
 	eth_dev->tx_pkt_burst = uk_ethdev_tx_burst;
 
@@ -666,7 +676,7 @@ int eal_uknetdev_init(void)
 	char name[RTE_ETHDEV_NAMESIZE];
 
 	cnt = uk_netdev_count();
-
+	// 将每一个 uk_netdev 注册成 eth_dev
 	for (i = 0; i < cnt; i++) {
 		dev = uk_netdev_get(i);
 		if (!dev)
