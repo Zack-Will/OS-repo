@@ -509,27 +509,30 @@ report_packet_stats(dumpcap_out_t out)
  */
 static void dpdk_init(void)
 {
+	// 需要传入的参数
 	static const char * const args[] = {
 		"dumpcap", "--proc-type", "secondary",
 		"--log-level", "notice"
 
 	};
+	// RTE_DIM 为计算元素个数的宏定义
 	const int eal_argc = RTE_DIM(args);
 	char **eal_argv;
 	unsigned int i;
 
 	/* DPDK API requires mutable versions of command line arguments. */
+	// 为参数数组分配内存
 	eal_argv = calloc(eal_argc + 1, sizeof(char *));
 	if (eal_argv == NULL)
 		rte_panic("No memory\n");
-
+	// 复制参数
 	eal_argv[0] = strdup(progname);
 	for (i = 1; i < RTE_DIM(args); i++)
 		eal_argv[i] = strdup(args[i]);
-
+	// 传入参数进行初始化
 	if (rte_eal_init(eal_argc, eal_argv) < 0)
 		rte_exit(EXIT_FAILURE, "EAL init failed: is primary process running?\n");
-
+	// 获取可用端口数量
 	if (rte_eth_dev_count_avail() == 0)
 		rte_exit(EXIT_FAILURE, "No Ethernet ports found\n");
 }

@@ -300,9 +300,10 @@ enum rte_iova_mode rte_eal_iova_mode(void)
 int rte_eal_init(int argc, char **argv)
 {
 	int rc;
-
+	// 重置设备内部配置
 	eal_reset_internal_config(&internal_config);
-
+	// 获取 CPU 信息并填充 cpu_info 结构体
+	// location: dpdk\lib\eal\common\eal_common_lcore.c
 	rc = rte_eal_cpu_init();
 	if (rc < 0) {
 		uk_pr_err("Failed to initialize the CPU\n");
@@ -316,6 +317,7 @@ int rte_eal_init(int argc, char **argv)
 
 	/**
 	 * Parse the argument.
+	 * 将传入的字符串参数转化为 internal_config 结构体内部参数
 	 */
 	rc = eal_parse_args(argc, argv);
 	if (rc < 0) {
@@ -327,6 +329,7 @@ int rte_eal_init(int argc, char **argv)
 	
 	/**
 	 * Process the arguments on the device
+	 * 在 Unikraft 中，该函数无实际效果
 	 */
 	rc = eal_option_device_parse();
 	if (rc < 0) {
@@ -338,7 +341,8 @@ int rte_eal_init(int argc, char **argv)
 	rte_config_init();
 
 	/**
-	 * Configure the heap based on the huge page information. 
+	 * Configure the heap based on the huge page information.
+	 * 配置大内存页 
 	 */
 	rc = eal_hugepage_info_init();
 	if (rc < 0) {
@@ -348,6 +352,7 @@ int rte_eal_init(int argc, char **argv)
 
 	/**
 	 * Memzone initialization configure the fbarray.
+	 * 初始化内存区子系统
 	 */
 	rc = rte_eal_memzone_init();
 	if (rc < 0) {
