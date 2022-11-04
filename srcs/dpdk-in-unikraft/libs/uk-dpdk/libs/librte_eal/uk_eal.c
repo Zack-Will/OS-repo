@@ -365,25 +365,26 @@ int rte_eal_init(int argc, char **argv)
 	 * Check if we need changes to configure
 	 * - memseg
 	 * - memalloc
+	 * 初始化内存子系统
 	 */
 	rc = rte_eal_memory_init();
 	if (rc < 0) {
 		uk_pr_err("Failed to initialize the memory\n");
 		return rc;
 	}
-
+	// 初始化堆
 	rc = rte_eal_malloc_heap_init();
 	if (rc < 0) {
 		uk_pr_err("Failed to initialize heap\n");
 		return rc;
 	}
-
+	// 初始化队列
 	if (rte_eal_tailqs_init() < 0) {
 		uk_pr_err("Cannot init tail queues for objects\n");
 		rte_errno = EFAULT;
 		return -1;
 	}
-
+	// 初始化线程并设置 affinity
 	eal_thread_init_master(rte_config.master_lcore);
 
 	rc = eal_uknetdev_init();
