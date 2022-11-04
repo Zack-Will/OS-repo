@@ -728,20 +728,21 @@ rte_fbarray_init(struct rte_fbarray *arr, const char *name, unsigned int len,
 		rte_errno = EINVAL;
 		return -1;
 	}
-
+	// 判断是否许可
 	if (fully_validate(name, elt_sz, len)) {
 		uk_pr_err("Validation failed\n");
 		return -1;
 	}
 
 	/* allocate mem area before doing anything */
+	// 申请内存
 	ma = malloc(sizeof(*ma));
 	if (ma == NULL) {
 		uk_pr_err("malloc failed\n");
 		rte_errno = ENOMEM;
 		return -1;
 	}
-
+	// 获取分页大小
 	page_sz = sysconf(_SC_PAGESIZE);
 	if (page_sz == (size_t)-1) {
 		uk_pr_err("page_sz failed\n");
@@ -750,6 +751,7 @@ rte_fbarray_init(struct rte_fbarray *arr, const char *name, unsigned int len,
 	}
 
 	/* calculate our memory limits */
+	// 计算内存上限
 	mmap_len = calc_data_size(page_sz, elt_sz, len);
 	printf("mmap_len: %d len: %d elt_sz: %d\n", mmap_len, len, elt_sz);
 
@@ -765,9 +767,10 @@ rte_fbarray_init(struct rte_fbarray *arr, const char *name, unsigned int len,
 	rte_spinlock_lock(&mem_area_lock);
 
 	fd = -1;
-
+	// 无共享 config
 	if (internal_config.no_shconf) {
 		/* remap virtual area as writable */
+		// 对齐内存
 		uk_posix_memalign(uk_alloc_get_default(), &data, __PAGE_SIZE, mmap_len);
 		if (!data) {
 			RTE_LOG(DEBUG, EAL, "%s(): couldn't remap anonymous memory: %s\n",
@@ -820,6 +823,7 @@ rte_fbarray_init(struct rte_fbarray *arr, const char *name, unsigned int len,
 	TAILQ_INSERT_TAIL(&mem_area_tailq, ma, next);
 
 	/* initialize the data */
+	// 初始化内存
 	memset(data, 0, mmap_len);
 
 	uk_pr_info("%p %p --- %p\n", arr, arr->name, name);
