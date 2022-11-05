@@ -68,8 +68,11 @@ struct rte_mem_resource {
  * A structure describing a device driver.
  */
 struct rte_driver {
+	// 驱动列表
 	RTE_TAILQ_ENTRY(rte_driver) next; /**< Next in list. */
+	// 驱动名称
 	const char *name;                   /**< Driver name. */
+	// 驱动别名
 	const char *alias;              /**< Driver alias. */
 };
 
@@ -83,11 +86,17 @@ struct rte_driver {
  * A structure describing a generic device.
  */
 struct rte_device {
+	// 链表中下一个设备
 	RTE_TAILQ_ENTRY(rte_device) next; /**< Next device */
+	// 设备名称
 	const char *name;             /**< Device name */
+	// 设备驱动
 	const struct rte_driver *driver; /**< Driver assigned after probing */
+	// 总线驱动
 	const struct rte_bus *bus;    /**< Bus handle assigned on scan */
+	// 非统一内存访问节点连接
 	int numa_node;                /**< NUMA node connection */
+	// 最后一次探测到的设备参数
 	struct rte_devargs *devargs;  /**< Arguments for latest probing */
 };
 

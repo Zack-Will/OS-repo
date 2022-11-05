@@ -49,10 +49,10 @@ struct uk_ethdev_private {
 };
 
 struct uk_ethdev_queue {
-	// 用于轮询的设备队列
+	// 队列的抽象
 	int port_id; // 端口 id
 	int queue_id; // 队列 id
-	struct rte_eth_dev *dev; // 设备链表头
+	struct rte_eth_dev *dev; // 设备
 };
 
 static struct uk_ethdev_private *dev_list;
