@@ -337,7 +337,7 @@ int rte_eal_init(int argc, char **argv)
 		return rc;
 	}
 	uk_pr_debug("dev_args parsed\n");
-
+	// 如果是主进程则初始化配置
 	rte_config_init();
 
 	/**

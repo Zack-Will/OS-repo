@@ -394,7 +394,7 @@ static uint16_t uk_ethdev_rx_burst(void *queue,
 	vrtl_eth_dev = &rte_eth_devices[rxq->port_id];
 	dev_private = vrtl_eth_dev->data->dev_private;
 	UK_ASSERT(dev_private);
-	// 限制最大发包数
+	// 限制最大收包数
 	nb_pkts = (nb_pkts > MAX_PKT_BURST)? MAX_PKT_BURST:nb_pkts;
 
 	if (unlikely(!vrtl_eth_dev->data->dev_link.link_status)) {
@@ -574,10 +574,11 @@ static int uk_ethdev_create(struct uk_netdev *dev, const char *name,
 	dev_private = rte_zmalloc_socket(name, sizeof(*dev_private), 0, socket_id);
 	if (dev_private == NULL)
 		goto err;
-
+	// 存储 uk_netdev的索引
 	dev_private->netdev = dev; 
 
 #ifdef CONFIG_UK_NETDEV_RING
+	// 创建环状队列
 	snprintf(name_buf, sizeof(name_buf), "%s_rxQ", name);
 	dev_private->rx_queue = rte_ring_create(name_buf, MAX_PKT_BURST, socket_id,
 			0);
@@ -647,7 +648,7 @@ static int uk_ethdev_create(struct uk_netdev *dev, const char *name,
 	// 注册收发函数
 	eth_dev->rx_pkt_burst = uk_ethdev_rx_burst;
 	eth_dev->tx_pkt_burst = uk_ethdev_tx_burst;
-
+	// 注册 fast path
 	rte_eth_dev_probing_finish(eth_dev);
 
 	return eth_dev->data->port_id;

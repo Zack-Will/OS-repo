@@ -3,7 +3,11 @@
 #include <uk/asm/limits.h>
 #include <eal_internal_cfg.h>
 #include <rte_memory.h>
-
+/**
+ * 1ULL << 21 = 2M
+ * ULL = unsigned long long
+ * 2^10bit = 1KB
+ */
 static uint32_t huge_page_size = RTE_PGSIZE_2M;
 
 int eal_hugepage_info_init(void)
@@ -27,6 +31,7 @@ int eal_hugepage_info_init(void)
 	/**
 	 * Align the memory for the 2MB.
 	 */
+	// 计算页数
 	hpi->num_pages[0] =  left_mem / huge_page_size;
 	internal_config.num_hugepage_sizes = 1;
 	printf("%s: left memory: %llu huge pages of size: %d and count: %d\n",

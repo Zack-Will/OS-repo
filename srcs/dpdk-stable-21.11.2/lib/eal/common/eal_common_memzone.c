@@ -398,7 +398,7 @@ rte_eal_memzone_init(void)
 	mcfg = rte_eal_get_configuration()->mem_config;
 
 	rte_rwlock_write_lock(&mcfg->mlock);
-
+	// 主进程中初始化 fbarray，子进程中连接主进程的 fbarray
 	if (rte_eal_process_type() == RTE_PROC_PRIMARY &&
 			rte_fbarray_init(&mcfg->memzones, "memzone",
 			RTE_MAX_MEMZONE, sizeof(struct rte_memzone))) {

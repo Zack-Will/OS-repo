@@ -3,6 +3,7 @@
     "files.associations": {
         "initializer_list": "c",
         "type_traits": "c",
-        "xutility": "c"
+        "xutility": "c",
+        "sched.h": "c"
     }
 }

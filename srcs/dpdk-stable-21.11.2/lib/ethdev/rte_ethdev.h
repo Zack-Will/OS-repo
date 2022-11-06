@@ -5323,6 +5323,7 @@ rte_eth_rx_burst(uint16_t port_id, uint16_t queue_id,
 #endif
 
 	/* fetch pointer to queue data */
+	// 通过端口号和队列号取出相应结构体
 	p = &rte_eth_fp_ops[port_id];
 	qd = p->rxq.data[queue_id];
 
@@ -5335,7 +5336,7 @@ rte_eth_rx_burst(uint16_t port_id, uint16_t queue_id,
 		return 0;
 	}
 #endif
-
+	// 调用 fast path 中注册好的 rx_pkt_burst
 	nb_rx = p->rx_pkt_burst(qd, rx_pkts, nb_pkts);
 
 #ifdef RTE_ETHDEV_RXTX_CALLBACKS
@@ -5355,7 +5356,7 @@ rte_eth_rx_burst(uint16_t port_id, uint16_t queue_id,
 					rx_pkts, nb_rx, nb_pkts, cb);
 	}
 #endif
-
+	// 创建一个追踪点
 	rte_ethdev_trace_rx_burst(port_id, queue_id, (void **)rx_pkts, nb_rx);
 	return nb_rx;
 }
